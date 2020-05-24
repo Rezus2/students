@@ -24,6 +24,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
@@ -34,7 +35,6 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     DBMatches mDBConnector;
-    Context mContext;
     ListView mListView;
     myListAdapter myAdapter;
 
@@ -47,8 +47,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mDBConnector = new DBMatches(this);
+        myAdapter=new myListAdapter(this, mDBConnector.selectAll());
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         mAppBarConfiguration = new AppBarConfiguration.Builder(
@@ -79,7 +84,8 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.add:
-                Intent i = new Intent(mContext, AddActivity.class);
+//                Intent i = new Intent(mContext, AddActivity.class);
+                Intent i = new Intent(this, AddActivity.class); // весь контекст содержится уже внутри данной активности
                 startActivityForResult(i, ADD_ACTIVITY);
                 updateList();
                 return true;
@@ -107,11 +113,12 @@ public class MainActivity extends AppCompatActivity {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         switch (item.getItemId()) {
             case R.id.edit:
-                Intent i = new Intent(mContext, AddActivity.class);
+//                Intent i = new Intent(mContext, AddActivity.class);
+                Intent i = new Intent(this, AddActivity.class); // соответсвенно
                 Matches md = mDBConnector.select(info.id);
                 i.putExtra("Matches", md);
                 startActivityForResult(i, UPDATE_ACTIVITY);
-                updateList();
+//                updateList(); та же ситуация
                 return true;
             case R.id.delete:
                 mDBConnector.delete(info.id);
@@ -130,13 +137,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        if (resultCode == Activity.RESULT_OK) {
-            Matches md = (Matches) data.getExtras().getSerializable("Matches");
-            if (requestCode == UPDATE_ACTIVITY)
-                mDBConnector.update(md);
-            else
-                mDBConnector.insert(md.getName(), md.getSurname(), md.getMiddlename(), md.getGroup());
-            updateList();
+        if (resultCode == Activity.RESULT_OK && requestCode == ADD_ACTIVITY) {
+            if (data != null && data.hasExtra("Matches")) {
+                Matches md = (Matches) data.getExtras().getSerializable("Matches");
+                if (md != null) {
+                    if (requestCode == UPDATE_ACTIVITY)
+                        mDBConnector.update(md);
+                    else
+                        mDBConnector.insert(md.getName(), md.getSurname(), md.getMiddlename(), md.getGroup());
+                    updateList();
+                }
+            }
         }
     }
 
